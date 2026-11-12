@@ -89,6 +89,26 @@ The loaded AppleTV Tweaks / Infuse Saver plugin adds torrent-file context menu a
 
 Both plugins can be installed at the same time because they handle different Lampa events.
 
+## Copy magnet
+
+`copy-magnet.js` is a separate plugin from this repository. It adds a **Copy magnet** item to three long-press menus:
+
+| Where | Source of the link |
+| --- | --- |
+| A file of a torrent opened through TorrServer (the **Action** menu) | The parser's magnet when the torrent was opened from the parser list, so its trackers are kept; otherwise a magnet built from the TorrServer info hash, named after the torrent's folder |
+| A release in the parser results | `MagnetUri`, a magnet in `Link`, or a magnet built from `InfoHash` (LampaParser sends it for rows that keep a `/dl/` link) |
+| A torrent in **My torrents** | A magnet built from its info hash and name |
+
+A release with only a `.torrent` download link gets **Copy .torrent link** instead. When the clipboard is unavailable, the link is shown on screen and written to the console.
+
+Add it in **Lampa → Settings → Extensions → Add plugin**:
+
+```text
+https://dcip3.github.io/lampa-infuse-fix/copy-magnet.js?v=1.0.0
+```
+
+Diagnostics: `LampaCopyMagnet.status()` returns `{ installed, copies, lastOpened }`.
+
 ## Diagnostics
 
 After the plugin loads, its version is available in the Lampa developer console:
