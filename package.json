@@ -1,0 +1,14 @@
+{
+  "name": "dcip3-lampa-plugins",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Small Lampa plugins, each loaded on its own from GitHub Pages.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "check": "node --test && node scripts/check-syntax.mjs && node scripts/check-commit-messages.mjs --rev-range HEAD"
+  }
+}

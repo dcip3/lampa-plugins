@@ -1,0 +1,13 @@
+title = "Lampa plugins secret scan"
+
+[extend]
+useDefault = true
+
+# Jackett API keys are 32 lowercase letters and digits; the default rules miss them.
+# A copied .torrent link or a test fixture could carry one.
+[[rules]]
+id = "jackett-api-key"
+description = "Jackett API key"
+regex = '''(?i)(?:jackett[_-]?api[_-]?key|jackett_apikey|apikey)["'=: ]+([a-z0-9]{32})\b'''
+secretGroup = 1
+keywords = ["apikey", "api_key", "api-key"]
