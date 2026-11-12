@@ -1,55 +1,61 @@
-# Lampa Infuse Fix
+# Lampa Plugins
 
-A small, dependency-free Lampa plugin that fixes incorrect episode selection when opening large TorrServer torrent packs in Infuse.
+Small, dependency-free plugins for [Lampa](https://github.com/yumata/lampa-source). Each one is a
+single file that loads on its own, so install only the ones you need.
 
-When an episode is selected, the plugin sends that episode first, followed by up to 39 subsequent files from the torrent. This guarantees that Infuse opens the requested episode and can continue forward without wrapping back to the beginning of the torrent. Regular URLs, other external players, and Lampa's built-in player are not modified.
+| Plugin | What it does | URL |
+| --- | --- | --- |
+| [Infuse Fix](#infuse-fix) | Opens the selected TorrServer episode in Infuse, even far down a large pack | `https://dcip3.github.io/lampa-plugins/infuse-fix.js?v=1.1.0` |
+| [Copy magnet](#copy-magnet) | Copies a torrent's magnet link from its long-press menu | `https://dcip3.github.io/lampa-plugins/copy-magnet.js?v=1.0.0` |
 
 ## Installation
 
-Lampa loads plugins from a URL, so `infuse-fix.js` must be available over HTTP(S).
+1. Open **Lampa → Settings → Extensions → Add plugin**.
+2. Enter the plugin's URL from the table above.
+3. Fully restart Lampa.
 
-### GitHub Pages
+To update a plugin, replace its URL with the one in the table, whose `?v=` changes with every
+release, and restart Lampa. The same URL without a new `?v=` may keep a cached copy for a while.
 
-This repository publishes the plugin through GitHub Pages. Add the following URL in **Lampa → Settings → Extensions → Add plugin**:
+The plugins were published from `dcip3.github.io/lampa-infuse-fix/` before. That address no
+longer serves them: replace an old URL with the one above.
 
-```text
-https://dcip3.github.io/lampa-infuse-fix/infuse-fix.js?v=1.1.0
-```
+### Local testing
 
-Fully restart Lampa after adding the URL.
-
-### Local testing on macOS
-
-Run a temporary local server:
+Serve a checkout of this repository:
 
 ```sh
-python3 -m http.server 8765 --directory /Users/dcip3/Documents/lampa-infuse-fix
+python3 -m http.server 8765 --directory /path/to/lampa-plugins
 ```
 
-Then add this URL in Lampa:
+Then add `http://localhost:8765/infuse-fix.js` or `http://localhost:8765/copy-magnet.js` in a
+Lampa that runs on the same computer. If the browser blocks an HTTP plugin loaded by
+`https://lampa.mx`, use the GitHub Pages URL or another HTTPS host.
 
-```text
-http://localhost:8765/infuse-fix.js
-```
+## Infuse Fix
 
-This works when Lampa runs on the same Mac. If the browser blocks an HTTP plugin loaded by `https://lampa.mx`, use the GitHub Pages URL above or another HTTPS host.
+`infuse-fix.js` fixes the episode Infuse opens from a large TorrServer torrent pack.
 
-## Usage
+When an episode is selected, the plugin sends that episode first, followed by up to 39 subsequent
+files from the torrent. Infuse opens the requested episode and can continue forward without
+wrapping back to the beginning of the torrent. Regular URLs, other external players, and Lampa's
+built-in player are not modified.
+
+### Usage
 
 1. Select **Infuse** as the external player for torrents or TV episodes.
 2. Open a torrent pack through TorrServer.
 3. Select any episode, including one far down the list.
 4. Infuse should open that exact episode.
 
-For example, a selected TorrServer stream containing `index=85` becomes the first item in an Infuse request similar to:
+For example, a selected TorrServer stream containing `index=85` becomes the first item in an
+Infuse request similar to:
 
 ```text
 infuse://x-callback-url/play?url=...%26index%3D85%26play&filename=...S09E04.mkv&url=...%26index%3D86%26play&filename=...S09E05.mkv&...
 ```
 
-The selected TorrServer URL is always first. Only subsequent items are appended; files before the selected item are never added at the end.
-
-## Root cause
+### Root cause
 
 As reviewed on August 17, 2026, Lampa's `src/core/infusePlayer.js` performs these steps:
 
@@ -57,11 +63,15 @@ As reviewed on August 17, 2026, Lampa's `src/core/infusePlayer.js` performs thes
 2. Builds links from the beginning of the source playlist, stopping at `maxItems: 40`.
 3. Attempts to rotate the truncated list using the original `startIndex`.
 
-If the selected episode is at position 40 or later, it is already absent from the truncated list. The rotation is skipped because the original index is outside the new list, leaving the first torrent episode at the front.
+If the selected episode is at position 40 or later, it is already absent from the truncated list.
+The rotation is skipped because the original index is outside the new list, leaving the first
+torrent episode at the front.
 
-## How it works
+### How it works
 
-The plugin subscribes to Lampa's supported `infuse_build_url` extension event. Immediately before Infuse launches, it checks whether the selected stream is a TorrServer URL, finds that URL in the original playlist, and builds a forward-only temporary playlist:
+The plugin subscribes to Lampa's supported `infuse_build_url` extension event. Immediately before
+Infuse launches, it checks whether the selected stream is a TorrServer URL, finds that URL in the
+original playlist, and builds a forward-only temporary playlist:
 
 1. The selected item is placed first.
 2. Up to 39 subsequent items are appended in their original order.
@@ -77,65 +87,29 @@ When available, the request also preserves:
 
 Non-TorrServer streams are ignored.
 
-## Relationship to `infuseSave.js`
+Earlier episodes are intentionally omitted. Infuse's URL API plays entries sequentially and does
+not provide a documented start-index parameter, so including earlier episodes while preserving
+chronological order would cause Infuse to start the wrong item.
 
-`https://lampame.github.io/main/infuseSave.js` is only a loader for:
+### Relationship to `infuseSave.js`
 
-```text
-https://lampame.github.io/main/its/its.js
-```
+`https://lampame.github.io/main/infuseSave.js` is only a loader for
+`https://lampame.github.io/main/its/its.js`, the AppleTV Tweaks / Infuse Saver plugin. It adds
+torrent-file menu actions to save one file, save all files, or edit the selection before saving.
+It does not intercept `infuse_build_url` and does not fix normal playback of an episode selected
+from a large torrent pack. Both plugins can be installed at the same time.
 
-The loaded AppleTV Tweaks / Infuse Saver plugin adds torrent-file context menu actions to save one file, save all files, or edit the selection before saving. It does not intercept `infuse_build_url` and does not fix normal playback of an episode selected from a large torrent pack.
+### Diagnostics
 
-Both plugins can be installed at the same time because they handle different Lampa events.
-
-## Copy magnet
-
-`copy-magnet.js` is a separate plugin from this repository. It adds a **Copy magnet** item to three long-press menus:
-
-| Where | Source of the link |
-| --- | --- |
-| A file of a torrent opened through TorrServer (the **Action** menu) | The parser's magnet when the torrent was opened from the parser list, so its trackers are kept; otherwise a magnet built from the TorrServer info hash, named after the torrent's folder |
-| A release in the parser results | `MagnetUri`, a magnet in `Link`, or a magnet built from `InfoHash` (LampaParser sends it for rows that keep a `/dl/` link) |
-| A torrent in **My torrents** | A magnet built from its info hash and name |
-
-A release with only a `.torrent` download link gets **Copy .torrent link** instead. When the clipboard is unavailable, the link is shown on screen and written to the console.
-
-Add it in **Lampa → Settings → Extensions → Add plugin**:
-
-```text
-https://dcip3.github.io/lampa-infuse-fix/copy-magnet.js?v=1.0.0
-```
-
-Diagnostics: `LampaCopyMagnet.status()` returns `{ installed, copies, lastOpened }`.
-
-## Diagnostics
-
-After the plugin loads, its version is available in the Lampa developer console:
+In the Lampa developer console:
 
 ```js
-LampaInfuseTorrServerFix.version
+LampaInfuseTorrServerFix.version   // '1.1.0'
+LampaInfuseTorrServerFix.status()  // { installed: true, interceptions: 1, lastPlaylistSize: 40 }
 ```
 
-Expected result:
-
-```text
-1.1.0
-```
-
-To confirm that the plugin subscribed to the player event and intercepted a launch, run:
-
-```js
-LampaInfuseTorrServerFix.status()
-```
-
-After at least one TorrServer launch through Infuse, the expected result is similar to:
-
-```js
-{ installed: true, interceptions: 1, lastPlaylistSize: 40 }
-```
-
-The URL generator can also be checked without launching Infuse:
+`interceptions` grows with every TorrServer launch through Infuse. The URL generator can also be
+checked without launching Infuse:
 
 ```js
 LampaInfuseTorrServerFix.buildInfuseUrl({
@@ -143,20 +117,39 @@ LampaInfuseTorrServerFix.buildInfuseUrl({
 })
 ```
 
-## Compatibility
+The plugin requires a Lampa version that provides the `infuse_build_url` event.
 
-The plugin requires a Lampa version that provides the `infuse_build_url` event. The event is present in both the current source and published Lampa bundle at the time of this review.
+## Copy magnet
 
-## Playlist limits
+`copy-magnet.js` adds a **Copy magnet** item to three long-press menus:
 
-The temporary playlist contains at most 40 items in total: the selected episode plus up to 39 following items. If the remaining deep link would exceed 65,536 characters, fewer items are included. The selected episode is always retained as the first item.
+| Where | Source of the link |
+| --- | --- |
+| A file of a torrent opened through TorrServer (the **Action** menu) | The parser's magnet when the torrent was opened from the parser list, so its trackers are kept; otherwise a magnet built from the TorrServer info hash, named after the torrent's folder |
+| A release in the parser results | `MagnetUri`, a magnet in `Link`, or a magnet built from `InfoHash` ([LampaParser](https://github.com/dcip3/DCIP3.LampaParser) sends it for rows that keep a `/dl/` link) |
+| A torrent in **My torrents** | A magnet built from its info hash and name |
 
-Earlier episodes are intentionally omitted. Infuse's URL API plays entries sequentially and does not provide a documented start-index parameter, so including earlier episodes while preserving chronological order would cause Infuse to start the wrong item.
+A release with only a `.torrent` download link gets **Copy .torrent link** instead. That link is
+the parser's own and may carry its API key or a tracker passkey, so keep it private.
+
+When the clipboard is unavailable, as it may be on a TV, the link is shown on screen and written
+to the console.
+
+### Diagnostics
+
+```js
+LampaCopyMagnet.version   // '1.0.0'
+LampaCopyMagnet.status()  // { installed: true, copies: 1, lastOpened: 'Release title' }
+```
 
 ## References
 
 - [Lampa Infuse integration](https://github.com/yumata/lampa-source/blob/main/src/core/infusePlayer.js)
 - [Lampa player extension hook](https://github.com/yumata/lampa-source/blob/main/src/interaction/player.js)
+- [Lampa torrent file menu](https://github.com/yumata/lampa-source/blob/main/src/interaction/torrent.js)
 - [`infuseSave.js` loader](https://github.com/lampame/main/blob/main/infuseSave.js)
 - [Infuse Saver / AppleTV Tweaks implementation](https://github.com/lampame/main/blob/main/its/its.js)
 - [Firecore x-callback-url API](https://support.firecore.com/hc/en-us/articles/215090997-API-for-Third-Party-Apps-Services)
+
+Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md); report security problems as described in
+[SECURITY.md](SECURITY.md).
